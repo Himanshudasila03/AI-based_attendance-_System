@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import RegisterFace from "./pages/RegisterFace";
 import StudentAttendance from "./pages/StudentAttendance";
+import StudentProfile from "./pages/StudentProfile";
 import NotFound from "./pages/NotFound";
 import { Button } from "@/components/ui/button";
 import { UserCircle } from "lucide-react";
@@ -64,6 +65,7 @@ const App = () => {
                           <Route path="/" element={<Dashboard userRole={userRole} />} />
                           <Route path="/capture" element={<CaptureAttendance />} />
                           <Route path="/attendance" element={<Dashboard userRole={userRole} />} />
+                          <Route path="/profile" element={<StudentProfile />} />
                           <Route path="/records" element={<Dashboard userRole={userRole} />} />
                           <Route path="/students" element={<Dashboard userRole={userRole} />} />
                           <Route path="*" element={<NotFound />} />

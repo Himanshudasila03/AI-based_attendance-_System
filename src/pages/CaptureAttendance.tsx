@@ -2,15 +2,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlayCircle, StopCircle, Plus, Trash2 } from "lucide-react";
+import { PlayCircle, StopCircle, Plus, Trash2, MapPin } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { StudentList } from "@/components/StudentList";
+import { getCurrentLocation, Location } from "@/lib/location";
 
 interface Session {
   id: number;
   subject: string;
+  teacherName: string;
+  teacherLocation: Location | null;
   startTime: string;
   endTime: string | null;
   isActive: boolean;
@@ -21,9 +24,13 @@ export default function CaptureAttendance() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [subject, setSubject] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [isCapturingLocation, setIsCapturingLocation] = useState(false);
   const { toast } = useToast();
 
-  const createSession = () => {
+  // Mock teacher name - in real app, this would come from auth context
+  const teacherName = "Dr. Smith";
+
+  const createSession = async () => {
     if (!subject.trim()) {
       toast({
         title: "Error",
@@ -33,22 +40,40 @@ export default function CaptureAttendance() {
       return;
     }
 
-    const newSession: Session = {
-      id: Date.now(),
-      subject: subject,
-      startTime: new Date().toLocaleTimeString(),
-      endTime: null,
-      isActive: true,
-      attendanceCount: 0,
-    };
+    setIsCapturingLocation(true);
 
-    setSessions([newSession, ...sessions]);
-    setSubject("");
-    setShowCreateForm(false);
-    toast({
-      title: "Session Started",
-      description: `${subject} session is now active. Students can mark attendance.`,
-    });
+    try {
+      // Capture teacher's current location
+      const location = await getCurrentLocation();
+
+      const newSession: Session = {
+        id: Date.now(),
+        subject: subject,
+        teacherName: teacherName,
+        teacherLocation: location,
+        startTime: new Date().toLocaleTimeString(),
+        endTime: null,
+        isActive: true,
+        attendanceCount: 0,
+      };
+
+      setSessions([newSession, ...sessions]);
+      setSubject("");
+      setShowCreateForm(false);
+      setIsCapturingLocation(false);
+
+      toast({
+        title: "Session Started",
+        description: `${subject} session is now active with your location captured. Students can mark attendance within 100m.`,
+      });
+    } catch (error) {
+      setIsCapturingLocation(false);
+      toast({
+        title: "Location Error",
+        description: error instanceof Error ? error.message : "Failed to get your location. Please enable location services.",
+        variant: "destructive",
+      });
+    }
   };
 
   const endSession = (sessionId: number) => {
@@ -95,13 +120,19 @@ export default function CaptureAttendance() {
           <Card className="bg-success/10 border-success">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
-                <div>
+                <div className="flex-1">
                   <p className="text-sm text-success font-medium mb-1">
                     ✓ Active Session: {activeSession.subject}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Started at {activeSession.startTime} • {activeSession.attendanceCount} students marked
                   </p>
+                  {activeSession.teacherLocation && (
+                    <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                      <MapPin className="h-3 w-3" />
+                      <span>Location captured • Students must be within 100m</span>
+                    </div>
+                  )}
                 </div>
                 <Button
                   onClick={() => endSession(activeSession.id)}
@@ -137,14 +168,25 @@ export default function CaptureAttendance() {
               />
             </div>
             <div className="flex gap-2">
-              <Button onClick={createSession} className="gap-2">
+              <Button
+                onClick={createSession}
+                className="gap-2"
+                disabled={isCapturingLocation}
+              >
                 <PlayCircle className="h-4 w-4" />
-                Start Session
+                {isCapturingLocation ? "Capturing Location..." : "Start Session"}
               </Button>
-              <Button onClick={() => setShowCreateForm(false)} variant="outline">
+              <Button
+                onClick={() => setShowCreateForm(false)}
+                variant="outline"
+                disabled={isCapturingLocation}
+              >
                 Cancel
               </Button>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Your location will be captured to verify student attendance within 100m radius.
+            </p>
           </CardContent>
         </Card>
       )}
@@ -176,6 +218,12 @@ export default function CaptureAttendance() {
                     <p className="text-sm text-muted-foreground">
                       {session.startTime} {session.endTime && `- ${session.endTime}`} • {session.attendanceCount} students
                     </p>
+                    {session.teacherLocation && (
+                      <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3" />
+                        <span>Location-based verification enabled</span>
+                      </div>
+                    )}
                   </div>
                   {!session.isActive && (
                     <Button

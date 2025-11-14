@@ -1,4 +1,4 @@
-import { LayoutDashboard, Camera, History, Settings, Users } from "lucide-react";
+import { LayoutDashboard, Camera, History, Settings, Users, UserCircle } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -19,6 +19,7 @@ interface AttendanceSidebarProps {
 const studentNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "My Attendance", url: "/attendance", icon: History },
+  { title: "My Profile", url: "/profile", icon: UserCircle },
 ];
 
 const teacherNavItems = [

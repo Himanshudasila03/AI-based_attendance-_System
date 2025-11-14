@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Camera, CheckCircle2, AlertCircle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Camera, CheckCircle2, AlertCircle, ArrowLeft } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 
 export default function RegisterFace() {
   const [step, setStep] = useState<"start" | "capturing" | "processing" | "success">("start");
   const [captureCount, setCaptureCount] = useState(0);
+  const [searchParams] = useSearchParams();
+  const isUpdate = searchParams.get("mode") === "update";
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -24,9 +26,15 @@ export default function RegisterFace() {
         setStep("processing");
         setTimeout(() => {
           setStep("success");
+          // Save to localStorage to persist face registration status
+          localStorage.setItem("faceRegistered", "true");
+          localStorage.setItem("faceRegisteredDate", new Date().toLocaleDateString());
+
           toast({
-            title: "Face Registered Successfully!",
-            description: "Your face data has been saved for attendance recognition",
+            title: isUpdate ? "Face Updated Successfully!" : "Face Registered Successfully!",
+            description: isUpdate
+              ? "Your face data has been updated for attendance recognition"
+              : "Your face data has been saved for attendance recognition",
           });
         }, 2000);
       }
@@ -34,16 +42,37 @@ export default function RegisterFace() {
   };
 
   const handleComplete = () => {
-    navigate("/student-attendance");
+    // Navigate to profile if updating, otherwise go to attendance
+    navigate(isUpdate ? "/profile" : "/student-attendance");
+  };
+
+  const handleBack = () => {
+    navigate(-1);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
       <Card className="w-full max-w-2xl">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold">Register Your Face</CardTitle>
+        <CardHeader className="text-center relative">
+          {step === "start" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBack}
+              className="absolute left-0 top-0 gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          )}
+          <CardTitle className="text-3xl font-bold">
+            {isUpdate ? "Update Your Face" : "Register Your Face"}
+          </CardTitle>
           <CardDescription>
-            We'll capture multiple angles to train the recognition system
+            {isUpdate
+              ? "We'll re-capture your face data to update the recognition system"
+              : "We'll capture multiple angles to train the recognition system"
+            }
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -53,9 +82,14 @@ export default function RegisterFace() {
                 <Camera className="h-24 w-24 text-muted-foreground" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-lg font-semibold">First Time Setup</h3>
+                <h3 className="text-lg font-semibold">
+                  {isUpdate ? "Update Face Data" : "First Time Setup"}
+                </h3>
                 <p className="text-muted-foreground">
-                  We'll capture 5 photos of your face from different angles to ensure accurate recognition
+                  {isUpdate
+                    ? "We'll capture 5 new photos to update your face profile"
+                    : "We'll capture 5 photos of your face from different angles to ensure accurate recognition"
+                  }
                 </p>
               </div>
               <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 space-y-2">
@@ -73,7 +107,7 @@ export default function RegisterFace() {
                 </div>
               </div>
               <Button onClick={startCapture} size="lg" className="w-full">
-                Start Face Registration
+                {isUpdate ? "Start Face Update" : "Start Face Registration"}
               </Button>
             </div>
           )}
@@ -113,13 +147,18 @@ export default function RegisterFace() {
                 <CheckCircle2 className="h-24 w-24 text-success" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-lg font-semibold text-success">Registration Complete!</h3>
+                <h3 className="text-lg font-semibold text-success">
+                  {isUpdate ? "Update Complete!" : "Registration Complete!"}
+                </h3>
                 <p className="text-muted-foreground">
-                  Your face has been successfully registered. You can now mark attendance using face recognition.
+                  {isUpdate
+                    ? "Your face data has been successfully updated. You can continue marking attendance as usual."
+                    : "Your face has been successfully registered. You can now mark attendance using face recognition."
+                  }
                 </p>
               </div>
               <Button onClick={handleComplete} size="lg" className="w-full">
-                Continue to Attendance
+                {isUpdate ? "Back to Profile" : "Continue to Attendance"}
               </Button>
             </div>
           )}
